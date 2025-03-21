@@ -1,9 +1,10 @@
 # app/presentation/controllers.py
 from flask import Blueprint, jsonify, request
-from application.services import SensorService, MeasurementService
-from infra.openaq_api import OpenAQApi
+from application.services import SensorService, MeasurementService, HistoryService, FutureService
+from infra.openaq_api import OpenAQApi, WeatherAPI
 
 sensor_bp = Blueprint("sensor", __name__)
+weather_bp = Blueprint("weather", __name__)
 
 @sensor_bp.route("/sensors/pm25/chile", methods=["GET"])
 def get_pm25_sensors():
@@ -28,3 +29,29 @@ def get_sensor_measurements():
         "datetimeFrom_local": m.datetime_from,
         "datetimeTo_local": m.datetime_to
     } for m in measurements])
+
+@weather_bp.route("/weather-history", methods=["GET"])
+def get_weather_history():
+    city = request.args.get("city")
+    date = request.args.get("date")
+
+    if not city or not date:
+        return jsonify({"error": "Parâmetros 'city' e 'date' são obrigatórios"}), 400
+
+    service = HistoryService(WeatherAPI())
+    resp = service.get_city_history(city, date)
+
+    return jsonify({"data": resp})
+
+@weather_bp.route("/weather-future", methods=["GET"])
+def get_weather_future():
+    city = request.args.get("city")
+    date = request.args.get("date")
+
+    if not city or not date:
+        return jsonify({"error": "Parâmetros 'city' e 'date' são obrigatórios"}), 400
+
+    service = FutureService(WeatherAPI())
+    resp = service.get_city_future(city, date)
+
+    return jsonify({"data": resp})
