@@ -17,12 +17,14 @@ CREATE SEQUENCE public.tbl_measurements_id_measurements_seq
 CREATE TABLE public.tbl_measurements (
 	id integer NOT NULL DEFAULT nextval('public.tbl_measurements_id_measurements_seq'),
 	id_sensor numeric(4) NOT NULL,
-	ds_city varchar(100) NOT NULL,
+	ds_city varchar(250) NOT NULL,
 	dt_date date NOT NULL,
-	qt_pm25 numeric(15, 2) NULL,
-    qt_avg_humidity numeric(15, 2) NULL,
-    qt_avg_temp_c numeric(15, 2) NULL,
-    qt_max_wind_kph numeric(15, 2) NULL,
-    qt_total_precip_mm numeric(15, 2) NULL,
+	qt_pm25 numeric(3, 2) NULL,
+    qt_avg_humidity numeric(2, 2) NULL,
+    qt_avg_temp_c numeric(2, 2) NULL,
+    qt_max_wind_kph numeric(3, 2) NULL,
+    qt_total_precip_mm numeric(4, 2) NULL,
+	pressure numeric(4, 1) NULL,
+	visibility numeric(2) NULL,
     CONSTRAINT pk_tbl_measurements PRIMARY KEY (id)
 );
