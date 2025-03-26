@@ -27,7 +27,8 @@ def get_sensor_measurements():
         "sensor_id": m.sensor_id,
         "value": m.value,
         "datetimeFrom_local": m.datetime_from,
-        "datetimeTo_local": m.datetime_to
+        "datetimeTo_local": m.datetime_to,
+        "city": m.city
     } for m in measurements])
 
 @weather_bp.route("/weather-history", methods=["GET"])

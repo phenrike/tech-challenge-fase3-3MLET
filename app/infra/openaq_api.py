@@ -23,10 +23,13 @@ class OpenAQApi(SensorRepository, MeasurementRepository):
             if location.get("country", {}).get("code") == "CL":
                 for sensor in location.get("sensors", []):
                     if sensor.get("parameter", {}).get("name") == "pm25":
-                        sensors.append(sensor["id"])
+                        sensors.append({
+                            "id": sensor["id"],
+                            "city": location["locality"]
+                        })
         return sensors
 
-    def get_measurements(self, sensor_id: int, datetime_from: str, datetime_to: str):
+    def get_measurements(self, sensor_id: int, datetime_from: str, datetime_to: str, city: str):
         """ Obtém medições de um sensor específico """
         url = f"{self.BASE_URL}/sensors/{sensor_id}/measurements/daily"
         params = {"datetime_from": datetime_from, "datetime_to": datetime_to, "limit": 100}
@@ -45,6 +48,7 @@ class OpenAQApi(SensorRepository, MeasurementRepository):
                     value=result["value"],
                     datetime_from=result["period"]["datetimeFrom"]["local"],
                     datetime_to=result["period"]["datetimeTo"]["local"],
+                    city=city
                 )
             )
 

@@ -14,14 +14,14 @@ class MeasurementService:
 
     def get_measurements_for_all_sensors(self, datetime_from: str, datetime_to: str):
         sensor_service = SensorService(self.repository)
-        sensor_ids = sensor_service.get_pm25_sensors()
+        sensors = sensor_service.get_pm25_sensors()
 
-        if not sensor_ids:
+        if not sensors:
             return []
 
         measurements = []
-        for sensor_id in sensor_ids:
-            measurements.extend(self.repository.get_measurements(sensor_id, datetime_from, datetime_to))
+        for sensor in sensors:
+            measurements.extend(self.repository.get_measurements(sensor["id"], datetime_from, datetime_to, sensor["city"]))
 
         return measurements
 
