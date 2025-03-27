@@ -1,10 +1,24 @@
 # app/presentation/controllers.py
 from flask import Blueprint, jsonify, request
-from application.services import SensorService, MeasurementService, HistoryService, FutureService
+from application.services import SensorService, MeasurementService, HistoryService, FutureService, OrchestratorService
 from infra.openaq_api import OpenAQApi, WeatherAPI
+from infra.database import Database
 
 sensor_bp = Blueprint("sensor", __name__)
 weather_bp = Blueprint("weather", __name__)
+orchestrator_bp = Blueprint("orchestrator", __name__)
+
+# Instância global do OrchestratorService
+_orchestrator = None
+
+def get_orchestrator():
+    global _orchestrator
+    if _orchestrator is None:
+        measurement_service = MeasurementService(OpenAQApi())
+        history_service = HistoryService(WeatherAPI())
+        database = Database()
+        _orchestrator = OrchestratorService(measurement_service, history_service, database)
+    return _orchestrator
 
 @sensor_bp.route("/sensors/pm25/chile", methods=["GET"])
 def get_pm25_sensors():
@@ -56,3 +70,21 @@ def get_weather_future():
     resp = service.get_city_future(city, date)
 
     return jsonify({"data": resp})
+
+@orchestrator_bp.route("/orchestrator", methods=["POST"])
+def process_and_save_data():
+    try:
+        datetime_from = "2024-03-27T00:00:00Z"
+        datetime_to = "2024-03-28T00:00:00Z"
+        
+        orchestrator = get_orchestrator()
+        result = orchestrator.process_and_save_data(datetime_from, datetime_to)
+        return jsonify(result)
+        
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@orchestrator_bp.route("/orchestrator/progress", methods=["GET"])
+def get_progress():
+    orchestrator = get_orchestrator()
+    return jsonify(orchestrator.get_progress())

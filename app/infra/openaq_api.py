@@ -63,27 +63,41 @@ class WeatherAPI():
         today = date.today()
         interval = (today - data_obj).days
         data_list = []
-        for i in range(interval):
-            params = {"key": "3a32179cc75946e2acd01006252103", "q": city, "dt": data_obj.strftime("%Y-%m-%d")}
-            response = requests.get(url, params=params)
-            data = response.json()
-            if response.status_code != 200:
-                pass
-            else:
-                city = data["location"]["name"]
-                date_var = data["forecast"]["forecastday"][0]["date"]
-                avg_humidity = data["forecast"]["forecastday"][0]["day"]["avghumidity"]
-                avg_temp_c = data["forecast"]["forecastday"][0]["day"]["avgtemp_c"]
-                avg_vis_km = data["forecast"]["forecastday"][0]["day"]["avgvis_km"]
-                max_wind_kph = data["forecast"]["forecastday"][0]["day"]["maxwind_kph"]
-                total_precip_mm = data["forecast"]["forecastday"][0]["day"]["totalprecip_mm"]
-                # extracting hour list
-                hours = data["forecast"]["forecastday"][0]["hour"]
-                # taking pressure_mb values and taking its mean
-                pressure_mb = np.mean([hour["pressure_mb"] for hour in hours])
-                #"http://127.0.0.1:5000/weather-history?city=Santiago&date=2024-03-21"
-                data_list.append({
-                #"city": city,
+        
+        # Verifica se a data está dentro do limite permitido (1 ano)
+        if interval > 365:
+            print(f"Aviso: A data {date_str} está muito distante. A API só permite consultas até 1 ano atrás.")
+            # Ajusta a data para exatamente um ano atrás
+            data_obj = today - timedelta(days=365)
+            print(f"Usando data ajustada: {data_obj}")
+            
+        params = {"key": "3a32179cc75946e2acd01006252103", "q": city, "dt": data_obj.strftime("%Y-%m-%d")}
+        response = requests.get(url, params=params)
+        data = response.json()
+        
+        if response.status_code != 200:
+            if "error" in data:
+                error_code = data["error"].get("code")
+                error_message = data["error"].get("message")
+                print(f"Erro na API Weather: Código {error_code} - {error_message}")
+                if error_code == 1008:
+                    print("Limite da API atingido. Apenas dados de até 1 ano atrás são permitidos.")
+                return []
+            return []
+            
+        try:
+            city = data["location"]["name"]
+            date_var = data["forecast"]["forecastday"][0]["date"]
+            avg_humidity = data["forecast"]["forecastday"][0]["day"]["avghumidity"]
+            avg_temp_c = data["forecast"]["forecastday"][0]["day"]["avgtemp_c"]
+            avg_vis_km = data["forecast"]["forecastday"][0]["day"]["avgvis_km"]
+            max_wind_kph = data["forecast"]["forecastday"][0]["day"]["maxwind_kph"]
+            total_precip_mm = data["forecast"]["forecastday"][0]["day"]["totalprecip_mm"]
+            hours = data["forecast"]["forecastday"][0]["hour"]
+            pressure_mb = float(np.mean([hour["pressure_mb"] for hour in hours]))
+            
+            return [{
+                "city": city,
                 "date": date_var,
                 "avg_humidity": avg_humidity,
                 "avg_temp_c": avg_temp_c,
@@ -91,16 +105,11 @@ class WeatherAPI():
                 "max_wind_kph": max_wind_kph,
                 "total_precip_mm": total_precip_mm,
                 "pressure_mb": pressure_mb
-                })
-            data_obj = data_obj + timedelta(days=1)
-        #if response.status_code != 200:
-        #    return []
-        
-        return data_list
-        #return jsonify(data_list)
+            }]
+        except Exception as e:
+            print(f"Erro ao processar dados para {city} em {data_obj}: {str(e)}")
+            return []
 
-        
-    
     def get_future(self, city: str, date: str):
         """Obtém dados da previsão do tempo de um determinado dia e uma cidade específica"""
         url = f"{self.BASE_URL}/future.json"
