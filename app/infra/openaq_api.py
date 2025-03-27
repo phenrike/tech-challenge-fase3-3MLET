@@ -14,13 +14,13 @@ class OpenAQApi(SensorRepository, MeasurementRepository):
     def get_pm25_sensors_from_chile(self):
         """ Obtém os sensores de PM2.5 no Chile """
         url = f"{self.BASE_URL}/locations"
-        params = {"limit": 100, "page": 1, "order_by": "id", "sort_order": "asc"}
+        params = {"limit": 200, "page": 1, "order_by": "id", "sort_order": "asc", "iso": "CL"}
         response = requests.get(url, headers=self.HEADERS, params=params)
         data = response.json()
 
         sensors = []
         for location in data.get("results", []):
-            if location.get("country", {}).get("code") == "CL":
+            if location.get("country", {}).get("code") == "CL" and location.get("locality") is not None:
                 for sensor in location.get("sensors", []):
                     if sensor.get("parameter", {}).get("name") == "pm25":
                         sensors.append({
