@@ -1,7 +1,11 @@
 # 🌎 API de Sensores de Qualidade do Ar (OpenAQ)
 
 ## 📌 Sobre o Projeto
-Esta API fornece dados sobre sensores de qualidade do ar no Chile, focando no poluente **PM2.5**. A API consome informações da **OpenAQ API** e permite consultar sensores disponíveis e suas medições dentro de um intervalo de datas.
+Esta API fornece dados sobre sensores de **qualidade do ar no Chile**, focando no poluente **PM2.5**. A API consome informações da **OpenAQ API** e permite consultar **sensores disponíveis** e suas **medições dentro de um intervalo de datas**.
+
+Utilizamos também a **WeatherAPI** para trazer **dados do clima** para uma cidade em um determinado período. A API também servirá de ponte para buscarmos **previsões futuras**, funcionalidade que permitirá **prever a qualidade do ar** em um período, numa cidade, com uma **previsão de tempo específica**.
+
+Além disso, a API possui um **endpoint de carga de dados**, que extrai as informações de **qualidade do ar e do tempo**, armazenando-as localmente em um **banco de dados**. Isso permite a posterior **análise** e a criação de **modelos de Machine Learning**.
 
 ## 🚀 Funcionalidades
 - **Listar sensores de PM2.5 no Chile** (`GET /sensors/pm25/chile`)
