@@ -6,6 +6,10 @@ Esta API fornece dados sobre sensores de qualidade do ar no Chile, focando no po
 ## 🚀 Funcionalidades
 - **Listar sensores de PM2.5 no Chile** (`GET /sensors/pm25/chile`)
 - **Obter medições de todos os sensores** (`GET /sensor-data?datetime_from=YYYY-MM-DD&datetime_to=YYYY-MM-DD`)
+- **Obter histórico do clima** (`GET /weather-history?city=NOME_DA_CIDADE&date=YYYY-MM-DD`)
+- **Obter previsão do clima** (`GET /weather-future?city=NOME_DA_CIDADE&date=YYYY-MM-DD`)
+- **Processar e salvar dados** (`POST /orchestrator`)
+- **Acompanhar progresso** (`GET /orchestrator/progress`)
 
 ---
 
@@ -14,6 +18,9 @@ Esta API fornece dados sobre sensores de qualidade do ar no Chile, focando no po
 - **Flask** (para criação da API)
 - **Requests** (para consumir a API OpenAQ)
 - **Clean Architecture** (separação em camadas)
+- **PostgreSQL** (banco de dados)
+- **Docker** (containerização)
+- **Weather API** (dados climáticos)
 
 ---
 
@@ -27,16 +34,19 @@ app/
 │   ├── sensor_repository.py
 │   ├── measurement_repository.py
 │
-├── infra/         # Implementação de APIs externas
-│   ├── openaq_api.py       # Consumo da API OpenAQ
+├── infra/                 # Implementação de APIs externas
+│   ├── openaq_api.py      # Consumo da API OpenAQ
+│   ├── weather_api.py     # Consumo da API de Clima
+│   ├── database.py        # Conexão com PostgreSQL
 │
-├── application/            # Regras de negócio
-│   ├── services.py         # Serviços para sensores e medições
+├── application/           # Regras de negócio
+│   ├── services.py        # Serviços para sensores e medições
+│   └── progress_manager.py # Gerenciamento de progresso
 │
-├── presentation/           # Camada de apresentação (controllers)
-│   ├── controllers.py      # Rotas da API
+├── presentation/          # Camada de apresentação (controllers)
+│   ├── controllers.py     # Rotas da API
 │
-├── main.py                 # Inicialização do Flask
+├── main.py               # Inicialização do Flask
 └── README.md
 ```
 
@@ -50,16 +60,19 @@ git clone https://github.com/phenrike/tech-challenge-fase3-3MLET.git
 cd tech-challenge-fase3-3MLET
 ```
 
-### 2️⃣ Criar e ativar ambiente virtual
+### 2️⃣ Usando Docker (Recomendado)
+```sh
+docker-compose up -d
+```
+A API estará rodando em **http://localhost:8080** 🚀
+
+### 3️⃣ Ou usando ambiente virtual
 ```sh
 python3 -m venv venv
 source venv/bin/activate  # (Linux/Mac)
 venv\Scripts\activate     # (Windows)
-```
-
-### 3️⃣ Instalar dependências
-```sh
 pip install -r requirements.txt
+python app/main.py
 ```
 
 ### 4️⃣ Definir chave de API do OpenAQ
@@ -68,20 +81,13 @@ Crie um arquivo **.env** na raiz do projeto e adicione:
 X_API_KEY=sua_api_key_aqui
 ```
 
-### 5️⃣ Rodar a API
-```sh
-python app/main.py
-```
-
-A API estará rodando em **http://127.0.0.1:5000** 🚀
-
 ---
 
 ## 🔥 Como Usar os Endpoints
 
 ### 📍 **Listar sensores de PM2.5 no Chile**
 ```sh
-GET http://127.0.0.1:5000/sensors/pm25/chile
+GET http://localhost:8080/sensors/pm25/chile
 ```
 📌 **Resposta:**
 ```json
@@ -92,7 +98,7 @@ GET http://127.0.0.1:5000/sensors/pm25/chile
 
 ### 📍 **Obter medições de todos os sensores**
 ```sh
-GET http://127.0.0.1:5000/sensor-data?datetime_from=2024-01-01&datetime_to=2024-01-31
+GET http://localhost:8080/sensor-data?datetime_from=2024-01-01T00:00:00Z&datetime_to=2024-01-31T00:00:00Z
 ```
 📌 **Resposta:**
 ```json
@@ -101,7 +107,28 @@ GET http://127.0.0.1:5000/sensor-data?datetime_from=2024-01-01&datetime_to=2024-
     "sensor_id": 1044,
     "value": 29.1,
     "datetimeFrom_local": "2024-01-01T00:00:00-03:00",
-    "datetimeTo_local": "2024-01-02T00:00:00-03:00"
+    "datetimeTo_local": "2024-01-02T00:00:00-03:00",
+    "city": "Santiago"
   }
 ]
+```
+
+### 📍 **Obter histórico do clima**
+```sh
+GET http://localhost:8080/weather-history?city=Santiago&date=2024-03-26
+```
+
+### 📍 **Obter previsão do clima**
+```sh
+GET http://localhost:8080/weather-future?city=Santiago&date=2024-03-26
+```
+
+### 📍 **Processar e salvar dados**
+```sh
+POST http://localhost:8080/orchestrator
+```
+
+### 📍 **Acompanhar progresso**
+```sh
+GET http://localhost:8080/orchestrator/progress
 ```
