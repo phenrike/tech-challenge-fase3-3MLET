@@ -19,8 +19,9 @@ class OpenAQApi(SensorRepository, MeasurementRepository):
         data = response.json()
 
         sensors = []
+        city_list = ['Santiago', 'Puerto Montt', 'Puerto Varas', 'Valparaíso', 'Viña del Mar']
         for location in data.get("results", []):
-            if location.get("country", {}).get("code") == "CL" and location.get("locality") is not None:
+            if location.get("country", {}).get("code") == "CL" and location.get("locality") in city_list:
                 for sensor in location.get("sensors", []):
                     if sensor.get("parameter", {}).get("name") == "pm25":
                         sensors.append({
@@ -32,7 +33,7 @@ class OpenAQApi(SensorRepository, MeasurementRepository):
     def get_measurements(self, sensor_id: int, datetime_from: str, datetime_to: str, city: str):
         """ Obtém medições de um sensor específico """
         url = f"{self.BASE_URL}/sensors/{sensor_id}/measurements/daily"
-        params = {"datetime_from": datetime_from, "datetime_to": datetime_to, "limit": 100}
+        params = {"datetime_from": datetime_from, "datetime_to": datetime_to, "limit": 1000}
         response = requests.get(url, headers=self.HEADERS, params=params)
 
         if response.status_code != 200:
@@ -110,12 +111,24 @@ class WeatherAPI():
             print(f"Erro ao processar dados para {city} em {data_obj}: {str(e)}")
             return []
 
-    def get_future(self, city: str, date: str):
+    def get_future(self, city: str, date_str: str):
         """Obtém dados da previsão do tempo de um determinado dia e uma cidade específica"""
-        url = f"{self.BASE_URL}/future.json"
-        params = {"key": "3a32179cc75946e2acd01006252103", "q": city, "dt": date}
+        
+        params = {"key": "3a32179cc75946e2acd01006252103", "q": city, "dt": date_str}
+        # check date interval to decide if the url will be future or forecast
+        data_obj = date.fromisoformat(date_str)
+        today = date.today()
+        interval = (data_obj - today).days
+        if interval <= 14:
+            # forecast
+            url = f"{self.BASE_URL}/forecast.json"
+            params["aqi"] = "no"
+            params["alerts"] = "no"
+        else:
+            # future
+            url = f"{self.BASE_URL}/future.json"
         response = requests.get(url, params=params)
-        print(response.status_code)
+
         if response.status_code != 200:
             return []
 

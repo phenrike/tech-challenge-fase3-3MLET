@@ -75,7 +75,7 @@ def get_weather_future():
 def process_and_save_data():
     try:
         datetime_from = "2024-03-27T00:00:00Z"
-        datetime_to = "2024-03-28T00:00:00Z"
+        datetime_to = "2025-03-26T00:00:00Z"
         
         orchestrator = get_orchestrator()
         result = orchestrator.process_and_save_data(datetime_from, datetime_to)
