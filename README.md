@@ -137,7 +137,7 @@ GET http://localhost:8080/sensor-data?datetime_from=2024-01-01T00:00:00Z&datetim
     "city": "Santiago",
     "datetimeFrom_local": "2023-12-31T00:00:00-03:00",
     "datetimeTo_local": "2024-01-01T00:00:00-03:00",
-    "sensor_id": 1044,GET http://localhost:8080/weather-history?city=Santiago&date=2024-03-26
+    "sensor_id": 1044,
     "value": 19.3
   }
 ]
