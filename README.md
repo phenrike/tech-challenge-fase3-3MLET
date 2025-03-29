@@ -66,6 +66,7 @@ cd tech-challenge-fase3-3MLET
 
 ### 2️⃣ Usando Docker (Recomendado)
 ```sh
+cd docker
 docker-compose up -d
 ```
 A API estará rodando em **http://localhost:8080** 🚀
@@ -96,7 +97,32 @@ GET http://localhost:8080/sensors/pm25/chile
 📌 **Resposta:**
 ```json
 {
-  "pm25_sensors": [1044, 2045, 3067]
+  "pm25_sensors": [
+    {
+      "city": "Santiago",
+      "id": 1044
+    },
+    {
+      "city": "Valparaíso",
+      "id": 67
+    },
+    {
+      "city": "Puerto Montt",
+      "id": 491
+    },
+    {
+      "city": "Viña del Mar",
+      "id": 1762
+    },
+    {
+      "city": "Puerto Montt",
+      "id": 21638
+    },
+    {
+      "city": "Puerto Varas",
+      "id": 28507
+    }
+  ]
 }
 ```
 
@@ -108,11 +134,11 @@ GET http://localhost:8080/sensor-data?datetime_from=2024-01-01T00:00:00Z&datetim
 ```json
 [
   {
-    "sensor_id": 1044,
-    "value": 29.1,
-    "datetimeFrom_local": "2024-01-01T00:00:00-03:00",
-    "datetimeTo_local": "2024-01-02T00:00:00-03:00",
-    "city": "Santiago"
+    "city": "Santiago",
+    "datetimeFrom_local": "2023-12-31T00:00:00-03:00",
+    "datetimeTo_local": "2024-01-01T00:00:00-03:00",
+    "sensor_id": 1044,GET http://localhost:8080/weather-history?city=Santiago&date=2024-03-26
+    "value": 19.3
   }
 ]
 ```
@@ -122,9 +148,43 @@ GET http://localhost:8080/sensor-data?datetime_from=2024-01-01T00:00:00Z&datetim
 GET http://localhost:8080/weather-history?city=Santiago&date=2024-03-26
 ```
 
+📌 **Resposta:**
+```json
+{
+  "data": [
+    {
+      "avg_humidity": 40,
+      "avg_temp_c": 20.3,
+      "avg_vis_km": 10.0,
+      "city": "Santiago",
+      "date": "2024-03-28",
+      "max_wind_kph": 13.7,
+      "pressure_mb": 1014.75,
+      "total_precip_mm": 0.0
+    }
+  ]
+}
+```
+
 ### 📍 **Obter previsão do clima**
 ```sh
-GET http://localhost:8080/weather-future?city=Santiago&date=2024-03-26
+GET http://localhost:8080/weather-future?city=Santiago&date=2025-04-05
+```
+
+📌 **Resposta:**
+```json
+{
+  "data": {
+    "avg_humidity": 32,
+    "avg_temp_c": 18.5,
+    "avg_vis_km": 10.0,
+    "city": "Santiago",
+    "date": "2025-04-05",
+    "max_wind_kph": 7.9,
+    "pressure_mb": 1014.2083333333334,
+    "total_precip_mm": 0.0
+  }
+}
 ```
 
 ### 📍 **Processar e salvar dados**
@@ -135,4 +195,66 @@ POST http://localhost:8080/orchestrator
 ### 📍 **Acompanhar progresso**
 ```sh
 GET http://localhost:8080/orchestrator/progress
+```
+
+📌 **Resposta:**
+```json
+{
+    "elapsed_time_seconds": 437.92,
+    "errors": [],
+    "measurements": {
+        "processed_cities": 5,
+        "progress_percentage": 100.0,
+        "total_inserted": 1947
+    },
+    "weather": {
+        "cities": [
+            {
+                "city": "Valparaíso",
+                "total_inserted": 365
+            },
+            {
+                "city": "Puerto Montt",
+                "total_inserted": 365
+            },
+            {
+                "city": "Viña del Mar",
+                "total_inserted": 365
+            },
+            {
+                "city": "Puerto Varas",
+                "total_inserted": 365
+            },
+            {
+                "city": "Santiago",
+                "total_inserted": 365
+            }
+        ],
+        "progress_percentage": 100.0
+    }
+}
+```
+### 📍 **Após treinar e salvar o modelo**
+```sh
+cd tech-challenge-fase3-3MLET/app
+python predict.py
+```
+
+### 📍 **Endpoint de predição**
+```sh
+GET http://localhost:5000/predict-pm25?city=Santiago&date=2025-04-05
+```
+
+📌 **Deveria trazer a resposta, mas ainda não funciona:**
+```sh
+{
+  "city": "Santiago",
+  "date": "2025-04-05",
+  "predicted_pm25": 28.5,
+  "weather_data": {
+    "temperature": 22.3,
+    "humidity": 45,
+    "wind_speed": 12.5
+  }
+}
 ```
