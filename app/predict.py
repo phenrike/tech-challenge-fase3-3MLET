@@ -1,13 +1,12 @@
 from flask import Flask, request, jsonify
-import pickle
+import joblib
 import numpy as np
 import requests
 
 app = Flask(__name__)
 
 # Carregar o modelo treinado
-with open("model.pkl", "rb") as f:
-    model = pickle.load(f)
+model = joblib.load("best_rf_model.pk")
 
 # Endpoint para prever o índice PM2.5
 @app.route("/predict-pm25", methods=["GET"])
@@ -44,13 +43,38 @@ def predict_pm25():
         temperature = forecast.get("avgtemp_c")
         humidity = forecast.get("avghumidity")
         wind_speed = forecast.get("maxwind_kph")
+        visibility = forecast.get("avgvis_km")
+        pressure = forecast.get("pressure_mb")
+        precipitation = forecast.get("totalprecip_mm")
 
-        if temperature is None or humidity is None or wind_speed is None:
-            return jsonify({"error": "Dados climáticos incompletos"}), 500
+        # Verificar e registrar parâmetros ausentes
+        missing_params = {}
+        if temperature is None:
+            missing_params["temperature"] = "Ausente"
+            temperature = 0  # Valor padrão
+        if humidity is None:
+            missing_params["humidity"] = "Ausente"
+            humidity = 0  # Valor padrão
+        if wind_speed is None:
+            missing_params["wind_speed"] = "Ausente"
+            wind_speed = 0  # Valor padrão
+        if visibility is None:
+            missing_params["visibility"] = "Ausente"
+            visibility = 0  # Valor padrão
+        if pressure is None:
+            missing_params["pressure"] = "Ausente"
+            pressure = 0  # Valor padrão
+        if precipitation is None:
+            missing_params["precipitation"] = "Ausente"
+            precipitation = 0  # Valor padrão
+
+        # Log dos parâmetros ausentes
+        if missing_params:
+            print(f"Parâmetros ausentes: {missing_params}")
 
         # Fazer a previsão do índice PM2.5
-        features = np.array([[temperature, humidity, wind_speed]])
-        predicted_pm25 = model.predict(features)[0]
+        features = np.array([[temperature, humidity, wind_speed, visibility, pressure, precipitation]])
+        predicted_pm25 = int(model.predict(features)[0])
 
         return jsonify({
             "city": city,
@@ -59,8 +83,12 @@ def predict_pm25():
             "weather_data": {
                 "temperature": temperature,
                 "humidity": humidity,
-                "wind_speed": wind_speed
-            }
+                "wind_speed": wind_speed,
+                "visibility": visibility,
+                "pressure": pressure,
+                "precipitation": precipitation
+            },
+            "missing_parameters": missing_params
         })
 
     except Exception as e:
