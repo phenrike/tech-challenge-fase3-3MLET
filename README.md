@@ -245,16 +245,19 @@ python predict.py
 GET http://localhost:5000/predict-pm25?city=Santiago&date=2025-04-05
 ```
 
-📌 **Deveria trazer a resposta, mas ainda não funciona:**
+📌 **Resposta:**
 ```sh
 {
-  "city": "Santiago",
-  "date": "2025-04-05",
-  "predicted_pm25": 28.5,
-  "weather_data": {
-    "temperature": 22.3,
-    "humidity": 45,
-    "wind_speed": 12.5
+   "city": "Santiago",
+   "date": "2025-04-12",
+   "predicted_pm25": 43,
+   "weather_data": {
+      "humidity": 39,
+      "precipitation": 0.0,
+      "pressure": 1014,
+      "temperature": 21.3,
+      "visibility": 10.0,
+      "wind_speed": 13.0
   }
 }
 ```
