@@ -47,6 +47,13 @@ class FutureService:
 
     def get_city_future(self, city: str, date: str):
         return self.repository.get_future(city, date)
+    
+class ForecastService:
+    def __init__(self, repository: WeatherAPI):
+        self.repository = repository
+
+    def get_forecast_pm25(self, city: str, date: str):
+        return self.repository.prever_pm25(city, date)
 
 class OrchestratorService:
     def __init__(self, measurement_service: MeasurementService, history_service: HistoryService, database: Database):

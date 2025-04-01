@@ -6,6 +6,12 @@ from domain.models import Measurement
 import numpy as np
 from datetime import date, timedelta
 from flask import jsonify
+import pandas as pd
+import pickle
+from sqlalchemy import create_engine
+from sklearn.preprocessing import OneHotEncoder
+import os
+import joblib
 
 class OpenAQApi(SensorRepository, MeasurementRepository):
     BASE_URL = "https://api.openaq.org/v3"
@@ -155,3 +161,91 @@ class WeatherAPI():
         "total_precip_mm": total_precip_mm,
         "pressure_mb": pressure_mb
         }
+    
+    def forecast_pm25(self, city: str, date_str: str):
+        """Obtém a previsão do pm 2.5 na cidade e data escolhidas"""
+        # load the saved model
+        model = joblib.load("app/model.pkl")
+
+        # load the most recent historical data - same logic as the notebook
+        # configure postgres connection 
+        USER = "postgres"
+        PASSWORD = "password"
+        HOST = "db" 
+        PORT = "5432" 
+        DB_NAME = "db_measurements"
+        # connection string
+        conn_str = f"postgresql+psycopg2://{USER}:{PASSWORD}@{HOST}:{PORT}/{DB_NAME}"
+        # create connection engine
+        engine = create_engine(conn_str)
+        # test connection and load data into a dataframe
+        query = "SELECT * FROM tbl_weather_history"
+        df_weather_history = pd.read_sql(query, engine)
+        query = "SELECT * FROM tbl_measurements"
+        df_measurements = pd.read_sql(query, engine)
+        # date transformations
+        df_weather_history['dt_date'] = df_weather_history['dt_date'].apply(lambda x: x.isoformat() if pd.notnull(x) else None)
+        df_measurements['dt_date'] = df_measurements['dt_date_from'].apply(lambda x: x.date().isoformat() if pd.notnull(x) else None)
+        # merge both dataframes
+        df = pd.merge(df_weather_history, df_measurements, on=['ds_city', 'dt_date'], how='inner')
+        # drop columns
+        df.drop(columns=['id_x', 'id_y', 'id_sensor', 'dt_date_from', 'dt_date_to'], inplace=True)
+        # mean pm2.5 column
+        df = df.groupby(['ds_city', 'dt_date']).mean().reset_index()
+        # instanciating one hot encoder class
+        encoder = OneHotEncoder()
+        encoded_data = encoder.fit_transform(df[['ds_city']]).toarray()
+        df_encoded = pd.DataFrame(encoded_data, columns=encoder.get_feature_names_out(['ds_city']))
+        # concatenate new data codifying the data
+        df_encoded = pd.concat([df, df_encoded], axis=1)
+        df = df_encoded
+        # filter data based on the chosen city
+        df = df.query(f'ds_city == "{city}"')
+        df.drop(columns=['ds_city'], inplace = True)
+        # date treatment
+        df['dt_date'] = pd.to_datetime(df['dt_date'])
+        df["ano"] = df["dt_date"].dt.year
+        df["mes"] = df["dt_date"].dt.month
+        df["dia"] = df["dt_date"].dt.day
+        # order by date
+        df = df.sort_values(by='dt_date')
+        last_date = df['dt_date'].max()
+        # drop previous date column
+        df.drop(columns=['dt_date'], inplace=True)
+        # create a dataframe to store future predictions
+        df_prev = df.copy()
+        # iterate over days for prediction
+        features = ['qt_avg_humidity', 'qt_avg_temp_c', 'qt_avg_vis_km', 'qt_max_wind_kph', 'qt_total_precip_mm', 'qt_pressure_mb', 'ano', 'mes', 'dia', f'ds_city_{city}', 'ds_city_Puerto Montt', 'ds_city_Puerto Varas']
+        while last_date < pd.to_datetime(date_str):
+            # update last_date
+            last_date = pd.to_datetime(last_date)
+            last_date += pd.Timedelta(days=1)
+            # get preview from API
+            weather_data = self.get_future(city, date_str)
+            print(weather_data)
+            new_entry = {}
+            # format json data to create a new entry for the history dataframe
+            new_entry['qt_avg_humidity'] = weather_data['avg_humidity']
+            new_entry['qt_avg_temp_c'] = weather_data['avg_temp_c']
+            new_entry['qt_avg_vis_km'] = weather_data['avg_vis_km']
+            new_entry['qt_max_wind_kph'] = weather_data['max_wind_kph']
+            new_entry['qt_total_precip_mm'] = weather_data['total_precip_mm']
+            new_entry['qt_pressure_mb'] = weather_data['pressure_mb']
+
+            last_date = pd.to_datetime(last_date)
+            new_entry['ano'] = last_date.year
+            new_entry['mes'] = last_date.month
+            new_entry['dia'] = last_date.day
+            new_entry[f'ds_city_{city}'] = 1
+            new_entry['ds_city_Puerto Varas'] = 0
+            new_entry['ds_city_Puerto Montt'] = 0
+            new_entry['qt_pm25'] = None 
+            
+            new_entry_df = pd.DataFrame(new_entry, index=[0])
+
+            new_entry_df['qt_pm25'] = model.predict(new_entry_df[features])
+            
+
+            df_prev = pd.concat([df_prev, new_entry_df], ignore_index=True)
+
+        return df_prev.tail(1).to_json()

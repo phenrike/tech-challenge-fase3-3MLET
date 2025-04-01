@@ -3,6 +3,10 @@ from flask import Blueprint, jsonify, request
 from application.services import SensorService, MeasurementService, HistoryService, FutureService, OrchestratorService
 from infra.openaq_api import OpenAQApi, WeatherAPI
 from infra.database import Database
+import pandas as pd
+import pickle
+from sqlalchemy import create_engine
+from sklearn.preprocessing import OneHotEncoder
 
 sensor_bp = Blueprint("sensor", __name__)
 weather_bp = Blueprint("weather", __name__)
@@ -74,8 +78,8 @@ def get_weather_future():
 @orchestrator_bp.route("/orchestrator", methods=["POST"])
 def process_and_save_data():
     try:
-        datetime_from = "2024-03-27T00:00:00Z"
-        datetime_to = "2025-03-26T00:00:00Z"
+        datetime_from = "2024-03-30T00:00:00Z"
+        datetime_to = "2025-03-30T00:00:00Z"
         
         orchestrator = get_orchestrator()
         result = orchestrator.process_and_save_data(datetime_from, datetime_to)
@@ -88,3 +92,22 @@ def process_and_save_data():
 def get_progress():
     orchestrator = get_orchestrator()
     return jsonify(orchestrator.get_progress())
+
+
+@weather_bp.route("/forecast_pm25", methods=["GET"])
+def forecast_pm25():
+    city = request.args.get("city")
+    date = request.args.get("date")
+
+    if not city or not date:
+        return jsonify({"error": "Parâmetros 'city' e 'date' são obrigatórios"}), 400
+
+    service = WeatherAPI()
+    forecast = service.forecast_pm25(city, date)
+
+    #if not forecast:
+    #    return jsonify({"error": "Não foi possível gerar a previsão de PM2.5"}), 404
+
+    return forecast
+
+    #return jsonify({"data": forecast})
