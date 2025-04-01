@@ -214,16 +214,18 @@ class WeatherAPI():
         df.drop(columns=['dt_date'], inplace=True)
         # create a dataframe to store future predictions
         df_prev = df.copy()
-        # iterate over days for prediction
-        features = ['qt_avg_humidity', 'qt_avg_temp_c', 'qt_avg_vis_km', 'qt_max_wind_kph', 'qt_total_precip_mm', 'qt_pressure_mb', 'ano', 'mes', 'dia', f'ds_city_{city}', 'ds_city_Puerto Montt', 'ds_city_Puerto Varas']
+        # get features from the dataframe
+        features = list(df_prev.columns)
+        # remove the target variable from the features list
+        features.remove('qt_pm25')
+        # iterate over days for prediction        
         while last_date < pd.to_datetime(date_str):
             # update last_date
             last_date = pd.to_datetime(last_date)
             last_date += pd.Timedelta(days=1)
             # get preview from API
             weather_data = self.get_future(city, date_str)
-            print(weather_data)
-            new_entry = {}
+            new_entry = df_prev.iloc[-1:].copy()
             # format json data to create a new entry for the history dataframe
             new_entry['qt_avg_humidity'] = weather_data['avg_humidity']
             new_entry['qt_avg_temp_c'] = weather_data['avg_temp_c']
@@ -236,16 +238,14 @@ class WeatherAPI():
             new_entry['ano'] = last_date.year
             new_entry['mes'] = last_date.month
             new_entry['dia'] = last_date.day
-            new_entry[f'ds_city_{city}'] = 1
-            new_entry['ds_city_Puerto Varas'] = 0
-            new_entry['ds_city_Puerto Montt'] = 0
-            new_entry['qt_pm25'] = None 
-            
-            new_entry_df = pd.DataFrame(new_entry, index=[0])
+            for column in new_entry.columns:
+                if column.startswith('ds_city_'):
+                    if column == f'ds_city_{city}':
+                        new_entry[column] = 1
+                    else:
+                        new_entry[column] = 0
+            new_entry['qt_pm25'] = model.predict(new_entry[features])
 
-            new_entry_df['qt_pm25'] = model.predict(new_entry_df[features])
-            
+            df_prev = pd.concat([df_prev, new_entry], ignore_index=True)
 
-            df_prev = pd.concat([df_prev, new_entry_df], ignore_index=True)
-
-        return df_prev.tail(1).to_json()
+        return df_prev.tail(1).to_json(orient='records', index=False)
