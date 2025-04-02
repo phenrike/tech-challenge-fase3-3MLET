@@ -48,13 +48,6 @@ class FutureService:
     def get_city_future(self, city: str, date: str):
         return self.repository.get_future(city, date)
     
-class ForecastService:
-    def __init__(self, repository: WeatherAPI):
-        self.repository = repository
-
-    def get_forecast_pm25(self, city: str, date: str):
-        return self.repository.prever_pm25(city, date)
-
 class OrchestratorService:
     def __init__(self, measurement_service: MeasurementService, history_service: HistoryService, database: Database):
         self.measurement_service = measurement_service
@@ -71,7 +64,7 @@ class OrchestratorService:
             try:
                 self.database.insert_measurement(
                     id_sensor=measurement.sensor_id,
-                    ds_city=measurement.city,
+                    ds_city=remove_accents(measurement.city),
                     dt_date_from=datetime.strptime(measurement.datetime_from, "%Y-%m-%dT%H:%M:%S%z"),
                     dt_date_to=datetime.strptime(measurement.datetime_to, "%Y-%m-%dT%H:%M:%S%z"),
                     qt_pm25=measurement.value

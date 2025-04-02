@@ -139,6 +139,7 @@ class WeatherAPI():
             return []
 
         data = response.json()
+        print(data)
         city = data["location"]["name"]
         date_var = data["forecast"]["forecastday"][0]["date"]
         avg_humidity = data["forecast"]["forecastday"][0]["day"]["avghumidity"]
@@ -192,6 +193,35 @@ class WeatherAPI():
         df.drop(columns=['id_x', 'id_y', 'id_sensor', 'dt_date_from', 'dt_date_to'], inplace=True)
         # mean pm2.5 column
         df = df.groupby(['ds_city', 'dt_date']).mean().reset_index()
+         # Converter dt_date para datetime
+        df['dt_date'] = pd.to_datetime(df['dt_date'])
+        
+        # Adicionar features de data
+        df["ano"] = df["dt_date"].dt.year
+        df["mes"] = df["dt_date"].dt.month
+        df["dia"] = df["dt_date"].dt.day
+        
+        # Ordenar por cidade e data
+        df = df.sort_values(['ds_city', 'dt_date'])
+        
+        # Criar médias móveis para diferentes períodos
+        df['qt_pm25_ma3'] = df.groupby('ds_city')['qt_pm25'].transform(lambda x: x.rolling(window=3, min_periods=1).mean())
+        df['qt_pm25_ma7'] = df.groupby('ds_city')['qt_pm25'].transform(lambda x: x.rolling(window=7, min_periods=1).mean())
+        df['qt_pm25_ma14'] = df.groupby('ds_city')['qt_pm25'].transform(lambda x: x.rolling(window=14, min_periods=1).mean())
+        df['qt_pm25_ema'] = df.groupby('ds_city')['qt_pm25'].transform(lambda x: x.ewm(span=7, adjust=False).mean())
+        df['qt_pm25_std7'] = df.groupby('ds_city')['qt_pm25'].transform(lambda x: x.rolling(window=7, min_periods=1).std().fillna(0))
+        df['qt_pm25_trend'] = df['qt_pm25_ma7'] - df['qt_pm25_ma3']
+        
+        # Features de sazonalidade
+        df['dia_semana'] = df['dt_date'].dt.dayofweek
+        df['mes_ano'] = df['dt_date'].dt.month
+        df['estacao'] = df['dt_date'].dt.month % 12 // 3 + 1
+        
+        # Features de interação
+        df['temp_umidade'] = df['qt_avg_temp_c'] * df['qt_avg_humidity']
+        df['pressao_umidade'] = df['qt_pressure_mb'] * df['qt_avg_humidity']
+        df['vento_umidade'] = df['qt_max_wind_kph'] * df['qt_avg_humidity']
+        
         # instanciating one hot encoder class
         encoder = OneHotEncoder()
         encoded_data = encoder.fit_transform(df[['ds_city']]).toarray()
@@ -202,29 +232,34 @@ class WeatherAPI():
         # filter data based on the chosen city
         df = df.query(f'ds_city == "{city}"')
         df.drop(columns=['ds_city'], inplace = True)
-        # date treatment
-        df['dt_date'] = pd.to_datetime(df['dt_date'])
-        df["ano"] = df["dt_date"].dt.year
-        df["mes"] = df["dt_date"].dt.month
-        df["dia"] = df["dt_date"].dt.day
-        # order by date
-        df = df.sort_values(by='dt_date')
-        last_date = df['dt_date'].max()
         # drop previous date column
+        df = df.sort_values(by=['ano', 'mes', 'dia'])
+        last_date = pd.to_datetime(df['dt_date'].iloc[-1])
         df.drop(columns=['dt_date'], inplace=True)
+        # order by date
+        print(last_date)
+        
         # create a dataframe to store future predictions
         df_prev = df.copy()
+        
         # get features from the dataframe
-        features = list(df_prev.columns)
-        # remove the target variable from the features list
-        features.remove('qt_pm25')
+        features = [
+            'qt_avg_humidity', 'qt_avg_temp_c', 'qt_avg_vis_km', 
+            'qt_max_wind_kph', 'qt_total_precip_mm', 'qt_pressure_mb',
+            'qt_pm25_ma3', 'qt_pm25_ma7', 'qt_pm25_ma14',
+            'qt_pm25_ema', 'qt_pm25_std7', 'qt_pm25_trend',
+            'dia_semana', 'mes_ano', 'estacao',
+            'temp_umidade', 'pressao_umidade', 'vento_umidade'#,
+            #'ano', 'mes', 'dia'
+        ] + [col for col in df.columns if col.startswith('ds_city_')]
+        
         # iterate over days for prediction        
         while last_date < pd.to_datetime(date_str):
             # update last_date
             last_date = pd.to_datetime(last_date)
             last_date += pd.Timedelta(days=1)
             # get preview from API
-            weather_data = self.get_future(city, date_str)
+            weather_data = self.get_future(city, last_date.strftime('%Y-%m-%d'))
             new_entry = df_prev.iloc[-1:].copy()
             # format json data to create a new entry for the history dataframe
             new_entry['qt_avg_humidity'] = weather_data['avg_humidity']
@@ -234,18 +269,43 @@ class WeatherAPI():
             new_entry['qt_total_precip_mm'] = weather_data['total_precip_mm']
             new_entry['qt_pressure_mb'] = weather_data['pressure_mb']
 
-            last_date = pd.to_datetime(last_date)
+            # atualizar data
             new_entry['ano'] = last_date.year
             new_entry['mes'] = last_date.month
             new_entry['dia'] = last_date.day
+            new_entry['dia_semana'] = last_date.dayofweek
+            new_entry['mes_ano'] = last_date.month
+            new_entry['estacao'] = last_date.month % 12 // 3 + 1
+            
+            # atualizar features de interação
+            new_entry['temp_umidade'] = new_entry['qt_avg_temp_c'] * new_entry['qt_avg_humidity']
+            new_entry['pressao_umidade'] = new_entry['qt_pressure_mb'] * new_entry['qt_avg_humidity']
+            new_entry['vento_umidade'] = new_entry['qt_max_wind_kph'] * new_entry['qt_avg_humidity']
+            
+            # garantir que colunas ds_city estejam corretas
             for column in new_entry.columns:
                 if column.startswith('ds_city_'):
                     if column == f'ds_city_{city}':
                         new_entry[column] = 1
                     else:
                         new_entry[column] = 0
+            
+            # fazer previsão
             new_entry['qt_pm25'] = model.predict(new_entry[features])
-
+            
+            # atualizar médias móveis para a próxima iteração
             df_prev = pd.concat([df_prev, new_entry], ignore_index=True)
+            
+            # Recalcular médias móveis após adicionar nova entrada
+            last_rows = df_prev.tail(14).copy()  # Pegamos as últimas 14 linhas para garantir cálculos corretos
+            new_entry['qt_pm25_ma3'] = last_rows['qt_pm25'].tail(3).mean()
+            new_entry['qt_pm25_ma7'] = last_rows['qt_pm25'].tail(7).mean()
+            new_entry['qt_pm25_ma14'] = last_rows['qt_pm25'].tail(14).mean()
+            new_entry['qt_pm25_ema'] = last_rows['qt_pm25'].ewm(span=7, adjust=False).mean().iloc[-1]
+            new_entry['qt_pm25_std7'] = last_rows['qt_pm25'].tail(7).std() if len(last_rows) >= 7 else 0
+            new_entry['qt_pm25_trend'] = new_entry['qt_pm25_ma7'] - new_entry['qt_pm25_ma3']
+            
+            # Atualizar a última entrada com os valores recalculados
+            df_prev.iloc[-1] = new_entry
 
         return df_prev.tail(1).to_json(orient='records', index=False)
