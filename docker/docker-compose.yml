@@ -6,7 +6,7 @@ services:
     ports:
       - "8080:8080"             
     volumes:
-      - ../:/app         
+      - ../:/app        
     environment:
       - DATABASE_URL=postgresql://postgres:password@db:5432/db_measurements
       - FLASK_APP=app.main
@@ -15,6 +15,21 @@ services:
       - db
     networks:
       - app-network
+
+  react-app:
+    build:
+      context: ../front  # Define "front/" como a raiz do contexto de build
+      dockerfile: ../docker/front/Dockerfile  # Caminho para o Dockerfile
+    ports:
+      - "5173:5173"
+    volumes:
+      - ../front:/app
+      - /app/node_modules
+    environment:
+      - CHOKIDAR_USEPOLLING=true
+    networks:
+      - app-network
+
   db:
     container_name: fase3_db
     build:
