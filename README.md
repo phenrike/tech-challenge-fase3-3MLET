@@ -14,6 +14,7 @@ Além disso, a API possui um **endpoint de carga de dados**, que extrai as infor
 - **Obter previsão do clima** (`GET /weather-future?city=NOME_DA_CIDADE&date=YYYY-MM-DD`)
 - **Processar e salvar dados** (`POST /orchestrator`)
 - **Acompanhar progresso** (`GET /orchestrator/progress`)
+- **Prevê valor de PM2.5** (`GET /forecast_pm25?city=Santiago&date=2025-04-05`)
 
 ---
 
@@ -247,7 +248,6 @@ GET http://localhost:8080/orchestrator/progress
 ### 📍 **Após treinar e salvar o modelo**
 ```sh
 cd tech-challenge-fase3-3MLET/app
-python predict.py
 ```
 
 ### 📍 **Endpoint de predição**
@@ -288,9 +288,7 @@ GET http://localhost:8080/forecast_pm25?city=Santiago&date=2025-04-05
 }
 ```
 
-Storytelling
-
----
+## Contexto da Aplicação
 
 #### **Introdução**
 Imagine que você está planejando uma viagem para uma das cidades do Chile, como Santiago ou Puerto Montt, e deseja saber como estará a qualidade do ar nos próximos dias. A poluição do ar, especialmente o índice de partículas PM2.5, pode impactar diretamente a saúde, especialmente para pessoas com problemas respiratórios. Pensando nisso, desenvolvemos uma solução que combina ciência de dados, aprendizado de máquina e tecnologia para prever o índice de poluição PM2.5.
