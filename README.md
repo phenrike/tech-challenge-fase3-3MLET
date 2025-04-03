@@ -25,6 +25,7 @@ Além disso, a API possui um **endpoint de carga de dados**, que extrai as infor
 - **PostgreSQL** (banco de dados)
 - **Docker** (containerização)
 - **Weather API** (dados climáticos)
+- **React** (front-end)
 
 ---
 
