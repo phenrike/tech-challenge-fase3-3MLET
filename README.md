@@ -41,8 +41,7 @@ app/
 │   ├── measurement_repository.py
 │
 ├── infra/                 # Implementação de APIs externas
-│   ├── openaq_api.py      # Consumo da API OpenAQ
-│   ├── weather_api.py     # Consumo da API de Clima
+│   ├── openaq_api.py      # Consumo das APIs OpenAQ e Weather
 │   ├── database.py        # Conexão com PostgreSQL
 │
 ├── application/           # Regras de negócio
