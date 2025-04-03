@@ -57,10 +57,9 @@ app/
 |   ├── docker-compose.yml # Configuração do Docker
 |   ├── Dockerfile         # Arquivo Docker
 |
-├── best_rf_model.pk       # Arquivo com o modelo treinado
+├── best_rf_model.pkl      # Arquivo com o modelo treinado
 ├── main.py                # Inicialização do Flask
 ├── notebook.ipynb         # Notebook para tratamento de dados e treinamento do modelo de ML
-├── predict.py             # Função para prever índice de poluição
 └── README.md
 ```
 
@@ -252,23 +251,39 @@ python predict.py
 
 ### 📍 **Endpoint de predição**
 ```sh
-GET http://localhost:5000/predict-pm25?city=Santiago&date=2025-04-05
+GET http://localhost:8080/forecast_pm25?city=Santiago&date=2025-04-05
 ```
 
 📌 **Resposta:**
 ```sh
 {
-   "city": "Santiago",
-   "date": "2025-04-12",
-   "predicted_pm25": 43,
-   "weather_data": {
-      "humidity": 39,
-      "precipitation": 0.0,
-      "pressure": 1014,
-      "temperature": 21.3,
-      "visibility": 10.0,
-      "wind_speed": 13.0
-  }
+        "qt_avg_humidity": 34.0,
+        "qt_avg_temp_c": 13.3,
+        "qt_avg_vis_km": 10.0,
+        "qt_max_wind_kph": 10.4,
+        "qt_total_precip_mm": 0.1,
+        "qt_pressure_mb": 1017.5416666667,
+        "qt_pm25": 27.732,
+        "ano": 2025,
+        "mes": 4,
+        "dia": 28,
+        "qt_pm25_ma3": 28.1203333333,
+        "qt_pm25_ma7": 28.2025714286,
+        "qt_pm25_ma14": 28.08375,
+        "qt_pm25_ema": 28.127782421,
+        "qt_pm25_std7": 0.3547133148,
+        "qt_pm25_trend": 0.0822380952,
+        "dia_semana": 0,
+        "mes_ano": 4,
+        "estacao": 2,
+        "temp_umidade": 452.2,
+        "pressao_umidade": 34596.4166666667,
+        "vento_umidade": 353.6,
+        "ds_city_Puerto Montt": 0.0,
+        "ds_city_Puerto Varas": 0.0,
+        "ds_city_Santiago": 1.0,
+        "ds_city_Valparaiso": 0.0
+    }
 }
 ```
 
@@ -277,12 +292,12 @@ Storytelling
 ---
 
 #### **Introdução**
-Imagine que você está planejando uma viagem para uma das cidades do Chile, como Santiago ou Puerto Montt, e deseja saber como estará a qualidade do ar nos próximos dias. A poluição do ar, especialmente o índice de partículas PM2.5, pode impactar diretamente a saúde, especialmente para pessoas com problemas respiratórios. Pensando nisso, desenvolvemos uma solução que combina ciência de dados, aprendizado de máquina e tecnologia para prever o índice de poluição PM2.5 com até 14 dias de antecedência.
+Imagine que você está planejando uma viagem para uma das cidades do Chile, como Santiago ou Puerto Montt, e deseja saber como estará a qualidade do ar nos próximos dias. A poluição do ar, especialmente o índice de partículas PM2.5, pode impactar diretamente a saúde, especialmente para pessoas com problemas respiratórios. Pensando nisso, desenvolvemos uma solução que combina ciência de dados, aprendizado de máquina e tecnologia para prever o índice de poluição PM2.5.
 
 ---
 
 #### **Objetivo**
-O objetivo deste projeto é criar uma aplicação que permita aos usuários consultar a previsão do índice de poluição PM2.5 em tempo real para diferentes cidades do Chile. A aplicação utiliza dados climáticos históricos e futuros para treinar um modelo de aprendizado de máquina que realiza previsões precisas. Além disso, os dados são armazenados em um banco de dados para facilitar consultas e análises futuras.
+O objetivo deste projeto é criar uma aplicação que permita aos usuários consultar a previsão do índice de poluição PM2.5 em tempo real para diferentes cidades do Chile. A aplicação utiliza dados climáticos históricos para treinar um modelo de aprendizado de máquina que realiza previsões precisas. Além disso, os dados são armazenados em um banco de dados para facilitar consultas e análises futuras.
 
 ---
 
@@ -296,16 +311,13 @@ O objetivo deste projeto é criar uma aplicação que permita aos usuários cons
    - Os dados coletados são armazenados em um banco de dados PostgreSQL, estruturado para suportar consultas eficientes.
    - Criamos tabelas específicas para armazenar o histórico climático (`tbl_weather_history`) e as medições de sensores de poluição (`tbl_measurements`).
 
-3. **Análise Exploratória**
-   - Exploramos os dados para entender a distribuição das variáveis climáticas e sua relação com o índice de PM2.5.
-   - Identificamos padrões e outliers nos dados para garantir a qualidade do conjunto de treinamento.
-
-4. **Pré-Processamento**
-   - Realizamos o tratamento de valores ausentes e duplicados.
-   - Codificamos variáveis categóricas, como o nome das cidades, e removemos colunas irrelevantes, como `ano`, `mes` e `dia`.
+3. **Pré-Processamento e Preparação dos Dados**
+   - Verificamos a necessidade de tratamento de valores ausentes e duplicados.
+   - Codificamos variáveis categóricas, como o nome das cidades.
    - Padronizamos os dados para garantir que todas as variáveis estejam na mesma escala.
+   - Unimos as duas tabelas em um único dataframe para utilizar no treinamento do modelo.
 
-5. **Treinamento do Modelo**
+4. **Treinamento do Modelo**
    - Utilizamos um modelo de aprendizado de máquina baseado em Random Forest Regressor, que foi escolhido por sua robustez e capacidade de lidar com dados não lineares.
    - O modelo foi treinado com as seguintes features climáticas:
      - Umidade média (`qt_avg_humidity`)
@@ -316,52 +328,84 @@ O objetivo deste projeto é criar uma aplicação que permita aos usuários cons
      - Pressão atmosférica média (`qt_pressure_mb`)
    - Avaliamos o modelo utilizando métricas como RMSE (Root Mean Squared Error) e MAPE (Mean Absolute Percentage Error).
 
+5. **Melhorando a Previsão do Modelo - Feature Engineering**
+   - Ao realizar as primeiras previsões, notamos que o valor target ficava constante para diferentes datas futuras.
+   - Com pesquisas, notamos que o modelo que estávamos utilizando não capturava a tendência e fazia apenas uma previsão pontual.
+   - Implementamos mais variáveis com a intenção de capturar a tendência dos dados e melhorar a previsão.
+   - Features de médias móveis:
+     - Média móvel de 3 dias (`qt_pm25_ma3`)
+     - Média móvel de 7 dias (`qt_pm25_ma7`)
+     - Média móvel de 14 dias (`qt_pm25_ma14`)
+     - Média móvel exponencial com um período de suavização de 7 dias (`qt_pm25_ema`)
+     - Desvio padrão de 7 dias (`qt_pm25_std7`)
+     - Tendência - diferença entre média móvel de 7 dias e média móvel de 3 dias (`qt_pm25_trend`)
+   - Features de sazonalidade:
+     - Dia da semana (`dia_semana`)
+     - Mês do ano (`dia_semana`)
+     - Estação (`dia_semana`)
+   - Features de interação entre as variáveis climáticas:
+     - Produto de temperatura e umidade (`temp_umidade`)
+     - Produto de pressão e umidade (`pressao_umidade`)
+     - Pressão de vento e umidade (`vento_umidade`)
+
 6. **Desenvolvimento da API**
    - Criamos uma API RESTful utilizando Flask para permitir que os usuários consultem a previsão do índice PM2.5.
    - A API coleta dados climáticos em tempo real, processa-os e utiliza o modelo treinado para realizar a previsão.
    - Endpoints principais:
-     - `/predict-pm25`: Retorna a previsão do índice PM2.5 para uma cidade e data específicas.
+     - `/forecast-pm25`: Retorna a previsão do índice PM2.5 para uma cidade e data específicas.
      - `/weather-history`: Retorna o histórico climático de uma cidade.
      - `/weather-future`: Retorna a previsão climática futura de uma cidade.
 
 7. **Armazenamento e Orquestração**
-   - Implementamos um serviço de orquestração que coleta dados automaticamente, processa-os e os armazena no banco de dados.
-   - Isso garante que o modelo esteja sempre atualizado com os dados mais recentes.
+   - Implementamos um serviço de orquestração que coleta dados, processa-os e os armazena no banco de dados.
 
 8. **Visualização**
-   - Criamos gráficos e visualizações para contar a história dos dados e do modelo.
-   - Exemplos:
-     - Distribuição da temperatura média e do índice PM2.5.
-     - Comparação entre os valores reais e previstos do índice PM2.5.
-   - As visualizações podem ser integradas a um dashboard ou apresentadas em um vídeo explicativo.
+   - Criamos uma interface em que o usuário pode escolher a cidade e a data desejada.
+   - É gerada uma visualização que mostra a previsão de PM 2.5, bem como um indicador visual sobre o nível da qualidade do ar.
+   - Além da cor, existe um campo que traz a qualidade do ar e um outro campo com a recomendação a respeito desse nível de PM2.5
 
 ---
 
 #### **Demonstração da Aplicação**
 1. **Consulta de Previsão**
-   - O usuário acessa a API ou o dashboard e insere a cidade e a data desejadas (até 14 dias no futuro).
+   - O usuário acessa a Aplicação e insere a cidade e a data desejadas.
    - A aplicação retorna a previsão do índice PM2.5, juntamente com os dados climáticos utilizados na previsão.
 
 2. **Exemplo de Uso**
-   - **Requisição**: `GET /predict-pm25?city=Santiago&date=2025-04-05`
+   - **Requisição**: `GET \forecast_pm25?city=Santiago&date=2025-04-28`
    - **Resposta**:
      ```json
      {
-         "city": "Santiago",
-         "date": "2025-04-05",
-         "predicted_pm25": 35,
-         "weather_data": {
-             "temperature": 25.0,
-             "humidity": 60.0,
-             "wind_speed": 5.2,
-             "visibility": 10.0,
-             "pressure": 1013.0,
-             "precipitation": 0.1
-         }
-     }
-     ```
-
-3. **Benefícios**
+        "qt_avg_humidity": 34.0,
+        "qt_avg_temp_c": 13.3,
+        "qt_avg_vis_km": 10.0,
+        "qt_max_wind_kph": 10.4,
+        "qt_total_precip_mm": 0.1,
+        "qt_pressure_mb": 1017.5416666667,
+        "qt_pm25": 27.732,
+        "ano": 2025,
+        "mes": 4,
+        "dia": 28,
+        "qt_pm25_ma3": 28.1203333333,
+        "qt_pm25_ma7": 28.2025714286,
+        "qt_pm25_ma14": 28.08375,
+        "qt_pm25_ema": 28.127782421,
+        "qt_pm25_std7": 0.3547133148,
+        "qt_pm25_trend": 0.0822380952,
+        "dia_semana": 0,
+        "mes_ano": 4,
+        "estacao": 2,
+        "temp_umidade": 452.2,
+        "pressao_umidade": 34596.4166666667,
+        "vento_umidade": 353.6,
+        "ds_city_Puerto Montt": 0.0,
+        "ds_city_Puerto Varas": 0.0,
+        "ds_city_Santiago": 1.0,
+        "ds_city_Valparaiso": 0.0
+      }
+4. **Visão da Aplicação**
+  ![alt text](image.png)
+4. **Benefícios**
    - Permite que os usuários planejem suas viagens com base na qualidade do ar.
    - Ajuda a conscientizar sobre os impactos das condições climáticas na poluição.
 
@@ -375,5 +419,6 @@ Este projeto combina ciência de dados, aprendizado de máquina e desenvolviment
 #### **Próximos Passos**
 - Expandir o modelo para incluir mais cidades e fontes de dados.
 - Melhorar o modelo com técnicas avançadas de aprendizado de máquina, como redes neurais.
+- Automatizar a coleta de dados, para que novos dados sejam incluídos na base histórica.
 
 ---

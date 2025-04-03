@@ -78,8 +78,8 @@ def get_weather_future():
 @orchestrator_bp.route("/orchestrator", methods=["POST"])
 def process_and_save_data():
     try:
-        datetime_from = "2024-04-02T00:00:00Z"
-        datetime_to = "2025-04-01T00:00:00Z"
+        datetime_from = "2024-04-03T00:00:00Z"
+        datetime_to = "2025-04-03T00:00:00Z"
         
         orchestrator = get_orchestrator()
         result = orchestrator.process_and_save_data(datetime_from, datetime_to)

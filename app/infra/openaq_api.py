@@ -11,11 +11,17 @@ import pickle
 from sqlalchemy import create_engine
 from sklearn.preprocessing import OneHotEncoder
 import os
+from dotenv import load_dotenv
+
+# Carregar as variáveis do arquivo .env
+load_dotenv()
+OpenAQApi_key = os.getenv("X_API_KEY")
+weatherAPI_key = os.getenv("WEATHER_API_KEY")
 import joblib
 
 class OpenAQApi(SensorRepository, MeasurementRepository):
     BASE_URL = "https://api.openaq.org/v3"
-    HEADERS = {"accept": "application/json", "X-API-Key": "ecc5b9ce27bba10c7c2cf36a3c2c859063a63239ebc48652688d37e3782aeac6"}
+    HEADERS = {"accept": "application/json", "X-API-Key": OpenAQApi_key}
 
     def get_pm25_sensors_from_chile(self):
         """ Obtém os sensores de PM2.5 no Chile """
@@ -78,7 +84,7 @@ class WeatherAPI():
             data_obj = today - timedelta(days=365)
             print(f"Usando data ajustada: {data_obj}")
             
-        params = {"key": "3a32179cc75946e2acd01006252103", "q": city, "dt": data_obj.strftime("%Y-%m-%d")}
+        params = {"key": weatherAPI_key, "q": city, "dt": data_obj.strftime("%Y-%m-%d")}
         response = requests.get(url, params=params)
         data = response.json()
         
@@ -120,7 +126,7 @@ class WeatherAPI():
     def get_future(self, city: str, date_str: str):
         """Obtém dados da previsão do tempo de um determinado dia e uma cidade específica"""
         
-        params = {"key": "3a32179cc75946e2acd01006252103", "q": city, "dt": date_str}
+        params = {"key": weatherAPI_key, "q": city, "dt": date_str}
         # check date interval to decide if the url will be future or forecast
         data_obj = date.fromisoformat(date_str)
         today = date.today()
@@ -232,12 +238,10 @@ class WeatherAPI():
         # filter data based on the chosen city
         df = df.query(f'ds_city == "{city}"')
         df.drop(columns=['ds_city'], inplace = True)
-        # drop previous date column
+        # drop previous date column and order by date
         df = df.sort_values(by=['ano', 'mes', 'dia'])
         last_date = pd.to_datetime(df['dt_date'].iloc[-1])
         df.drop(columns=['dt_date'], inplace=True)
-        # order by date
-        print(last_date)
         
         # create a dataframe to store future predictions
         df_prev = df.copy()

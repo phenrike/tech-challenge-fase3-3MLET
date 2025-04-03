@@ -32,7 +32,7 @@ function App() {
 
     try {
       const formattedDate = format(date, 'yyyy-MM-dd');
-      const response = await fetch(`http://127.0.0.1:8080/forecast_pm25?city=${city}&date=${formattedDate}`);
+      const response = await fetch(`http://localhost:8080/forecast_pm25?city=${city}&date=${formattedDate}`);
       
       if (!response.ok) {
         throw new Error('Falha ao obter previsão');
