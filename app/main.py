@@ -1,12 +1,12 @@
 from flask import Flask
-from presentation.controllers import sensor_bp, weather_bp, orchestrator_bp, predict_bp
+from presentation.controllers import sensor_bp, weather_bp, orchestrator_bp
 
 def create_app():
     app = Flask(__name__)
     app.register_blueprint(sensor_bp)
     app.register_blueprint(weather_bp)
     app.register_blueprint(orchestrator_bp)
-    app.register_blueprint(predict_bp)
+    
     return app
 
 if __name__ == "__main__":
